@@ -19,13 +19,18 @@ public class GameController {
 	private GameServiceI gameService;
 
 	@GetMapping
-	public ResponseEntity<?> getGame() {
+	public ResponseEntity<?> getGames() {
 		return ResponseEntity.ok(gameService.getGames());
+	}
+	
+	@GetMapping(path = "/{idGame}")
+	public ResponseEntity<?> getGame(@PathVariable Long idGame) {
+		return ResponseEntity.ok(gameService.getGame(idGame));
 	}
 
 	@PostMapping
 	public ResponseEntity<?> addGame(@RequestBody String secretWord) {
-		return ResponseEntity.ok(gameService.addGame(secretWord));
+		return ResponseEntity.ok(gameService.addGame(secretWord.toUpperCase()));
 	}
 
 	@PostMapping(path = "/{idGame}/{letter}")

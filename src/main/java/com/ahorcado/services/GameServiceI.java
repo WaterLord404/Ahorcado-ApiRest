@@ -8,6 +8,8 @@ public interface GameServiceI {
 
 	public List<Game> getGames();
 	
+	public Game getGame(Long idGame);
+	
 	public Game addGame(String secretWord);
 	
 	public Game sendLetter(Long idGame, String letter);

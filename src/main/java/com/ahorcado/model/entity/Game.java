@@ -8,6 +8,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 public class Game implements Serializable{
 
@@ -25,6 +27,8 @@ public class Game implements Serializable{
 	private String secretWord;
 	
 	private int mistakes;
+	
+	private boolean active;
 
 	public Game() { }
 	
@@ -35,6 +39,7 @@ public class Game implements Serializable{
 		this.letters = new String();
 		this.hiddenWord = new String();
 		this.mistakes = 0;
+		this.active = true;
 	}
 	
 	@Id
@@ -66,6 +71,7 @@ public class Game implements Serializable{
 	}
 
 	
+	@JsonIgnore
 	@Column(name = "SECRET_WORD", nullable = false)
 	public String getSecretWord() {
 		return secretWord;
@@ -84,6 +90,15 @@ public class Game implements Serializable{
 	}
 
 	
+	@JsonIgnore
+	@Column(name = "ACTIVE")
+	public boolean isActive() {
+		return active;
+	}
+	public void setActive(boolean active) {
+		this.active = active;
+	}
+
 	public static long getSerialversionuid() {
 		return serialVersionUID;
 	}
