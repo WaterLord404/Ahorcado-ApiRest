@@ -10,6 +10,6 @@ import com.ahorcado.model.entity.Game;
 @Repository
 public interface GameRepository extends JpaRepository<Game, Long>{
 
-	public List<Game> findAllGameByActive(boolean active);
+	public List<Game> findAllGamesByActive(boolean active);
 	
 }

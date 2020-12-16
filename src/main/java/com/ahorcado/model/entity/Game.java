@@ -29,6 +29,8 @@ public class Game implements Serializable{
 	private int mistakes;
 	
 	private boolean active;
+	
+	private String address;
 
 	public Game() { }
 	
@@ -38,10 +40,15 @@ public class Game implements Serializable{
 
 		this.letters = new String();
 		this.hiddenWord = new String();
+		this.address = new String();
 		this.mistakes = 0;
 		this.active = true;
 	}
 	
+	
+	/*
+	 * Id de la partida
+	 */
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "ID_GAME")
@@ -53,6 +60,9 @@ public class Game implements Serializable{
 	}
 
 	
+	/*
+	 * Letras mencionadas
+	 */
 	@Column(name = "LETTERS")
 	public String getLetters() {
 		return letters;
@@ -62,6 +72,9 @@ public class Game implements Serializable{
 	}
 
 	
+	/*
+	 * Palabra a resolver, ej: *****
+	 */
 	@Column(name = "HIDDEN_WORD")
 	public String getHiddenWord() {
 		return hiddenWord;
@@ -70,7 +83,10 @@ public class Game implements Serializable{
 		this.hiddenWord = hiddenWord;
 	}
 
-	
+
+	/*
+	 * Palabra secreta
+	 */
 	@JsonIgnore
 	@Column(name = "SECRET_WORD", nullable = false)
 	public String getSecretWord() {
@@ -80,7 +96,10 @@ public class Game implements Serializable{
 		this.secretWord = secretWord;
 	}
 
-	
+
+	/*
+	 * Errores (permitidos 7)
+	 */
 	@Column(name = "MISTAKES")
 	public int getMistakes() {
 		return mistakes;
@@ -90,6 +109,9 @@ public class Game implements Serializable{
 	}
 
 	
+	/*
+	 * Estado de la partida
+	 */
 	@JsonIgnore
 	@Column(name = "ACTIVE")
 	public boolean isActive() {
@@ -99,6 +121,20 @@ public class Game implements Serializable{
 		this.active = active;
 	}
 
+	
+	/*
+	 * Lista de ips de los jugadores
+	 */
+	@JsonIgnore
+	@Column(name = "ADDRESS")
+	public String getAddress() {
+		return address;
+	}
+	public void setAddress(String address) {
+		this.address = address;
+	}
+
+	
 	public static long getSerialversionuid() {
 		return serialVersionUID;
 	}

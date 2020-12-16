@@ -2,6 +2,8 @@ package com.ahorcado.services.impl;
 
 import java.util.List;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +24,7 @@ public class GameServiceImpl implements GameServiceI {
 	 */
 	@Override
 	public List<Game> getGames() {
-		return gameRepository.findAllGameByActive(true);
+		return gameRepository.findAllGamesByActive(true);
 	}
 
 	/**
@@ -44,17 +46,29 @@ public class GameServiceImpl implements GameServiceI {
 	 */
 	@Override
 	public Game addGame(String secretWord) {
-		Game game = new Game(secretWord);
 
+		// Inicializa
+		Game game = null;
+		secretWord = secretWord.toUpperCase();
+
+		// Comprueba si es una palabra
 		if (isOnlyAWord(secretWord)) {
 
-			game.setHiddenWord(generateHiddenWord(secretWord));
+			// Comprueba si la palabra secreta solo contiene caracteres
+			if (isOnlyCharacters(secretWord)) {
 
-			return gameRepository.save(game);
+				// Crea la partida
+				game = new Game(secretWord);
 
-		} else {
-			return null;
+				// Genera la palabra oculta
+				game.setHiddenWord(generateHiddenWord(secretWord));
+
+				// Persiste la partida en BD
+				gameRepository.save(game);
+			}
 		}
+
+		return game;
 	}
 
 	/**
@@ -65,65 +79,98 @@ public class GameServiceImpl implements GameServiceI {
 	 * @return Game
 	 */
 	@Override
-	public Game sendLetter(Long idGame, String letter) {
+	public Game sendLetter(Long idGame, String letter, HttpServletRequest request) {
+
+		// Cambia la letra a mayusculas
+		letter = letter.toUpperCase();
+
 		// Obtiene la partida
 		Game game = gameRepository.findById(idGame).get();
 
 		// Comprueba si la partida está activa
 		if (game.isActive()) {
 
-			// Comprueba si es una letra
-			if (isALetter(letter)) {
+			// Comprueba si esa ip no ha jugado la partida
+			if (ipNotAlreadyPlayed(game, request)) {
 
-				// Comprueba si la letra introducida no está repetida && si existe en la palabra
-				// secreta
-				if (game.getLetters().indexOf(letter.charAt(0)) == -1
-						&& existLetterIntoHiddenWord(game.getSecretWord(), letter)) {
+				// Comprueba si es una letra y si si es 1 sola letra
+				if (isOnlyCharacters(letter) && letter.length() == 1) {
 
-					// Añade la letra a la lista de letras
-					game.setLetters(game.getLetters() + letter);
+					// Comprueba si la letra introducida no está repetida && si existe en la palabra
+					// secreta
+					if (game.getLetters().indexOf(letter.charAt(0)) == -1
+							&& existLetterIntoHiddenWord(game.getSecretWord(), letter)) {
 
-					// Dibuja letra en la palabra oculta
-					game.setHiddenWord(drawLettersOnHiddenWord(game.getHiddenWord(), game.getSecretWord(), letter));
+						// Dibuja letra en la palabra oculta
+						game.setHiddenWord(drawLettersOnHiddenWord(game.getHiddenWord(), game.getSecretWord(), letter));
 
-					// Comprueba si se ha ganado la partida
-					if (isTheGameWon(game)) {
+						// Guarda la ip
+						game.setAddress(game.getAddress() + request.getRemoteAddr() + "-");
+
+					} else {
+						// Añade un fallo
+						game.setMistakes(game.getMistakes() + 1);
+					}
+
+					// Comprueba si ha ganado o perdido la partida
+					if (isTheGameLost(game) || isTheGameWon(game)) {
 
 						// Desactiva la partida
 						game.setActive(false);
+
+					} else {
+
+						// Comprueba si no existe la letra en la lista de letras
+						if (notExistLetterIntoLetters(game.getLetters(), letter)) {
+
+							// Añade la letra a la lista de letras
+							game.setLetters(game.getLetters() + letter);
+						}
 					}
-					
+
+					// Persiste la partida en BD
+					gameRepository.save(game);
+
 				} else {
-					// Añade un fallo
-					game.setMistakes(game.getMistakes() + 1);
-
-					// Comprueba si ha perdido la partida
-					if (isTheGameLost(game)) {
-
-						// Desactiva la partida
-						game.setActive(false);
-					}
+					game = null;
 				}
-
-				gameRepository.save(game);
 			}
+
 		}
 
 		return game;
 	}
 
 	/**
-	 * Comprueba si la palabra secreta es una palabra
+	 * Comprueba si ya ha jugado esa ip
+	 * 
+	 * @param game
+	 * @param request
+	 * @return boolean
+	 */
+	private boolean ipNotAlreadyPlayed(Game game, HttpServletRequest request) {
+		return game.getAddress().indexOf(request.getLocalAddr().toString()) == -1;
+	}
+
+	/**
+	 * Comprueba si existe la letra en la lista de letras
+	 * 
+	 * @param letters
+	 * @param letter
+	 * @return boolean
+	 */
+	private boolean notExistLetterIntoLetters(String letters, String letter) {
+		return letters.indexOf(letter.charAt(0)) == -1;
+	}
+
+	/**
+	 * Comprueba si es solo una palabra
 	 * 
 	 * @param String secretWord
 	 * @return boolean
 	 */
 	private boolean isOnlyAWord(String secretWord) {
-		if (secretWord.indexOf(" ") == -1) {
-			return true;
-		} else {
-			return false;
-		}
+		return secretWord.indexOf(" ") == -1;
 	}
 
 	/**
@@ -143,21 +190,23 @@ public class GameServiceImpl implements GameServiceI {
 	}
 
 	/**
-	 * Comprueba si es una letra
+	 * Comprueba si la palabra está compuesta solo por letras
 	 * 
-	 * @param String letter
+	 * @param String letters
 	 * @return boolean
 	 */
-	private boolean isALetter(String letter) {
-		if (letter.length() == 1) {
+	private boolean isOnlyCharacters(String word) {
+		boolean resul = true;
 
-			Character c = letter.charAt(0);
+		for (int i = 0; i < word.length(); i++) {
 
-			if (c >= 'A' && c <= 'Z') {
-				return true;
+			Character c = word.charAt(i);
+
+			if (!(c >= 'A' && c <= 'Z' || c == 'Ñ')) {
+				resul = false;
 			}
 		}
-		return false;
+		return resul;
 	}
 
 	/**
@@ -167,13 +216,9 @@ public class GameServiceImpl implements GameServiceI {
 	 * @return boolean
 	 */
 	private boolean isTheGameLost(Game game) {
-		if (game.getMistakes() == 7) {
-			return true;
-		} else {
-			return false;
-		}
+		return game.getMistakes() == 7;
 	}
-	
+
 	/**
 	 * Comprueba si se ha ganado la partida
 	 *
@@ -181,11 +226,7 @@ public class GameServiceImpl implements GameServiceI {
 	 * @return boolean
 	 */
 	private boolean isTheGameWon(Game game) {
-		if (game.getSecretWord().equals(game.getHiddenWord())) {
-			return true;
-		} else {
-			return false;
-		}
+		return game.getSecretWord().equals(game.getHiddenWord());
 	}
 
 	/**
@@ -196,11 +237,7 @@ public class GameServiceImpl implements GameServiceI {
 	 * @return boolean
 	 */
 	private boolean existLetterIntoHiddenWord(String secretWord, String letter) {
-		if (secretWord.indexOf(letter) != -1) {
-			return true;
-		} else {
-			return false;
-		}
+		return secretWord.indexOf(letter) != -1;
 	}
 
 	/**
@@ -215,10 +252,11 @@ public class GameServiceImpl implements GameServiceI {
 
 		// Recorre la palabra secreta
 		for (int i = 0; i < secretWord.length(); i++) {
-			
+
 			// Comprueba si el caracter en la posicion de i es igual que la letra.
-			// Si no son iguales concatena el caracter en la posicion de i de la palabra oculta
-			if (secretWord.charAt(i) == letter.charAt(0)) {				
+			// Si no son iguales concatena el caracter en la posicion de i de la palabra
+			// oculta
+			if (secretWord.charAt(i) == letter.charAt(0)) {
 				resul.append(secretWord.charAt(i));
 
 			} else {
