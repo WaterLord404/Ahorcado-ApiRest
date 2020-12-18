@@ -2,8 +2,6 @@ package com.ahorcado.services.impl;
 
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,11 +9,17 @@ import com.ahorcado.model.entity.Game;
 import com.ahorcado.model.repository.GameRepository;
 import com.ahorcado.services.GameServiceI;
 
+import javassist.NotFoundException;
+
 @Service
 public class GameServiceImpl implements GameServiceI {
 
 	@Autowired
 	private GameRepository gameRepository;
+
+	public GameServiceImpl(GameRepository gameRepository) {
+		this.gameRepository = gameRepository;
+	}
 
 	/**
 	 * Devuelve todas las partidas activas
@@ -35,7 +39,7 @@ public class GameServiceImpl implements GameServiceI {
 	 */
 	@Override
 	public Game getGame(Long idGame) {
-		return gameRepository.findById(idGame).get();
+		return gameRepository.findGameById(idGame);
 	}
 
 	/**
@@ -77,66 +81,67 @@ public class GameServiceImpl implements GameServiceI {
 	 * @param Long   idGame
 	 * @param String letter
 	 * @return Game
+	 * @throws NotFoundException
 	 */
 	@Override
-	public Game sendLetter(Long idGame, String letter, HttpServletRequest request) {
-
+	public Game sendLetter(Long idGame, String letter, String request) throws NotFoundException {
+		
 		// Cambia la letra a mayusculas
 		letter = letter.toUpperCase();
 
 		// Obtiene la partida
-		Game game = gameRepository.findById(idGame).get();
+		Game game = gameRepository.findGameById(idGame);
 
-		// Comprueba si la partida está activa
-		if (game.isActive()) {
+		// Comprueba si la partida existe
+		if (game != null) {
 
-			// Comprueba si esa ip no ha jugado la partida
-			if (ipNotAlreadyPlayed(game, request)) {
+			// Comprueba si la partida está activa
+			if (game.isActive()) {
 
-				// Comprueba si es una letra y si si es 1 sola letra
-				if (isOnlyCharacters(letter) && letter.length() == 1) {
+				if (ipNotAlreadyPlayed(game, request)) {
 
-					// Comprueba si la letra introducida no está repetida && si existe en la palabra
-					// secreta
-					if (game.getLetters().indexOf(letter.charAt(0)) == -1
-							&& existLetterIntoHiddenWord(game.getSecretWord(), letter)) {
+					// Comprueba si es una letra y si si es 1 sola letra
+					if (isOnlyCharacters(letter) && letter.length() == 1) {
 
-						// Dibuja letra en la palabra oculta
-						game.setHiddenWord(drawLettersOnHiddenWord(game.getHiddenWord(), game.getSecretWord(), letter));
+						// Comprueba si la letra introducida no está repetida && si existe en la palabra
+						// secreta
+						if (game.getLetters().indexOf(letter.charAt(0)) == -1
+								&& existLetterIntoHiddenWord(game.getSecretWord(), letter)) {
+
+							// Dibuja letra en la palabra oculta
+							game.setHiddenWord(
+									drawLettersOnHiddenWord(game.getHiddenWord(), game.getSecretWord(), letter));
+
+						} else {
+							// Añade un fallo
+							game.setMistakes(game.getMistakes() + 1);
+						}
 
 						// Guarda la ip
-						game.setAddress(game.getAddress() + request.getRemoteAddr() + "-");
+						game.setAddress(game.getAddress() + request + "-");
+						
+						// Comprueba si ha ganado o perdido la partida
+						if (isTheGameLost(game) || isTheGameWon(game)) {
 
-					} else {
-						// Añade un fallo
-						game.setMistakes(game.getMistakes() + 1);
-					}
+							// Desactiva la partida
+							game.setActive(false);
 
-					// Comprueba si ha ganado o perdido la partida
-					if (isTheGameLost(game) || isTheGameWon(game)) {
+						} else {
 
-						// Desactiva la partida
-						game.setActive(false);
+							// Comprueba si no existe la letra en la lista de letras
+							if (notExistLetterIntoLetters(game.getLetters(), letter)) {
 
-					} else {
-
-						// Comprueba si no existe la letra en la lista de letras
-						if (notExistLetterIntoLetters(game.getLetters(), letter)) {
-
-							// Añade la letra a la lista de letras
-							game.setLetters(game.getLetters() + letter);
+								// Añade la letra a la lista de letras
+								game.setLetters(game.getLetters() + letter);
+							}
 						}
+
+						// Persiste la partida en BD
+						gameRepository.save(game);
 					}
-
-					// Persiste la partida en BD
-					gameRepository.save(game);
-
-				} else {
-					game = null;
 				}
-			}
-
-		}
+			} else { throw new NotFoundException("Partida terminada");}
+		} else { throw new NotFoundException("Partida no encontrada");}
 
 		return game;
 	}
@@ -148,8 +153,8 @@ public class GameServiceImpl implements GameServiceI {
 	 * @param request
 	 * @return boolean
 	 */
-	private boolean ipNotAlreadyPlayed(Game game, HttpServletRequest request) {
-		return game.getAddress().indexOf(request.getLocalAddr().toString()) == -1;
+	protected boolean ipNotAlreadyPlayed(Game game, String request) {
+		return game.getAddress().indexOf(request) == -1;
 	}
 
 	/**

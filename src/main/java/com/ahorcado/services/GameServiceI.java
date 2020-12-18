@@ -2,9 +2,9 @@ package com.ahorcado.services;
 
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 import com.ahorcado.model.entity.Game;
+
+import javassist.NotFoundException;
 
 public interface GameServiceI {
 
@@ -37,6 +37,7 @@ public interface GameServiceI {
 	 * @param Long idGame
 	 * @param String letter
 	 * @return Game
+	 * @throws NotFoundException 
 	 */
-	public Game sendLetter(Long idGame, String letter, HttpServletRequest request);
+	public Game sendLetter(Long idGame, String letter, String request) throws NotFoundException;
 }

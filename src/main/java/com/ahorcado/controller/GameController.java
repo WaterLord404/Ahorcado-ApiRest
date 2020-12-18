@@ -1,7 +1,5 @@
 package com.ahorcado.controller;
 
-import java.util.NoSuchElementException;
-
 import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ahorcado.model.entity.Game;
 import com.ahorcado.services.GameServiceI;
 
+import javassist.NotFoundException;
+
 @RestController
 @RequestMapping(path = "/game")
-@CrossOrigin(origins = "*")
 public class GameController {
 
 	@Autowired
@@ -30,9 +29,10 @@ public class GameController {
 	 * 
 	 * @return ResponseEntity
 	 */
+	@CrossOrigin(origins = "*")
 	@GetMapping
 	public ResponseEntity<?> getGames() {
-		
+
 		return !gameService.getGames().isEmpty() 
 				? ResponseEntity.ok(gameService.getGames())
 				: ResponseEntity.notFound().build();
@@ -44,15 +44,13 @@ public class GameController {
 	 * @param idGame
 	 * @return ResponseEntity
 	 */
+	@CrossOrigin(origins = "*")
 	@GetMapping(path = "/{idGame}")
 	public ResponseEntity<?> getGame(@PathVariable Long idGame) {
-		
-		try {
-			return ResponseEntity.ok(gameService.getGame(idGame));
 
-		} catch (NoSuchElementException e) {
-			return ResponseEntity.notFound().build();
-		}
+		return gameService.getGame(idGame) != null 
+				? ResponseEntity.ok(gameService.getGame(idGame))
+				: ResponseEntity.notFound().build();
 	}
 
 	/**
@@ -64,10 +62,10 @@ public class GameController {
 	@CrossOrigin(origins = "http://localhost:8080") // Solo accesible desde la ip local
 	@PostMapping(path = "/{secretWord}")
 	public ResponseEntity<?> addGame(@PathVariable String secretWord) {
-		
+
 		Game game = gameService.addGame(secretWord);
-		
-		return game != null
+
+		return game != null 
 				? ResponseEntity.status(HttpStatus.CREATED).body(game)
 				: ResponseEntity.status(HttpStatus.CONFLICT).body(game);
 	}
@@ -79,20 +77,25 @@ public class GameController {
 	 * @param letter
 	 * @param request
 	 * @return ResponseEntity
+	 * @throws NotFoundException
 	 */
+	@CrossOrigin(origins = "*")
 	@PostMapping(path = "/{idGame}/{letter}")
 	public ResponseEntity<?> sendLetter(@PathVariable Long idGame, @PathVariable String letter,
-			HttpServletRequest request) {
+			HttpServletRequest requestClient) throws NotFoundException {
 
 		try {
+			String request = requestClient.getLocalAddr().toString();
+
 			Game game = gameService.sendLetter(idGame, letter, request);
-			
-			return game != null
+
+			return game != null 
 					? ResponseEntity.status(HttpStatus.CREATED).body(game)
 					: ResponseEntity.status(HttpStatus.CONFLICT).body(game);
 					
-		} catch (NoSuchElementException e) {
-			return ResponseEntity.notFound().build();
+		} catch (NotFoundException e) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).header("Response", e.getMessage()).build();
 		}
+
 	}
 }

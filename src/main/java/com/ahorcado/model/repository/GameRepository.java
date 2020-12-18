@@ -12,4 +12,5 @@ public interface GameRepository extends JpaRepository<Game, Long>{
 
 	public List<Game> findAllGamesByActive(boolean active);
 	
+	public Game findGameById(Long idGame);
 }
