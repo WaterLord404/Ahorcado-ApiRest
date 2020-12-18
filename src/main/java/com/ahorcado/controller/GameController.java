@@ -19,22 +19,38 @@ import javassist.NotFoundException;
 
 @RestController
 @RequestMapping(path = "/game")
+@CrossOrigin(origins = "*")
+
 public class GameController {
 
 	@Autowired
 	private GameServiceI gameService;
 
 	/**
-	 * Devuelve todas las partidas
+	 * Devuelve todas las partidas activas
 	 * 
 	 * @return ResponseEntity
 	 */
 	@CrossOrigin(origins = "*")
 	@GetMapping
-	public ResponseEntity<?> getGames() {
+	public ResponseEntity<?> getGamesActive() {
 
-		return !gameService.getGames().isEmpty() 
-				? ResponseEntity.ok(gameService.getGames())
+		return !gameService.getGamesActive().isEmpty() 
+				? ResponseEntity.ok(gameService.getGamesActive())
+				: ResponseEntity.notFound().build();
+	}
+	
+	/**
+	 * Devuelve los logs
+	 * 
+	 * @return ResponseEntity
+	 */
+	@CrossOrigin(origins = "http://localhost:8080") // Solo accesible desde la ip local
+	@GetMapping(path = "/logs")
+	public ResponseEntity<?> getLogs() {
+		
+		return !gameService.getLogs().isEmpty() 
+				? ResponseEntity.ok(gameService.getLogs().toString())
 				: ResponseEntity.notFound().build();
 	}
 
@@ -94,7 +110,8 @@ public class GameController {
 					: ResponseEntity.status(HttpStatus.CONFLICT).body(game);
 					
 		} catch (NotFoundException e) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).header("Response", e.getMessage()).build();
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.header("Response", e.getMessage()).build();
 		}
 
 	}

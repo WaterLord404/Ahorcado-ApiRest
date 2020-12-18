@@ -13,7 +13,14 @@ public interface GameServiceI {
 	 * 
 	 * @return List<Game>
 	 */
-	public List<Game> getGames();
+	public List<Game> getGamesActive();
+	
+	/**
+	 * Devuelve todas las partidas activas
+	 * 
+	 * @return List<Game>
+	 */
+	public List<Game> getLogs();
 	
 	/**
 	 * Devulve una partida activa

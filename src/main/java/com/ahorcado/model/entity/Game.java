@@ -9,6 +9,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.gson.Gson;
 
 @Entity
 public class Game implements Serializable{
@@ -61,7 +62,7 @@ public class Game implements Serializable{
 
 	
 	/*
-	 * Letras mencionadas
+	 * Lista de letras mencionadas ej: "AKSC" ...etc
 	 */
 	@Column(name = "LETTERS")
 	public String getLetters() {
@@ -123,7 +124,7 @@ public class Game implements Serializable{
 
 	
 	/*
-	 * Lista de ips de los jugadores
+	 * Lista de ips de los jugadores ej: 192.168.0.1-192.168.0.2 ...etc
 	 */
 	@JsonIgnore
 	@Column(name = "ADDRESS")
@@ -137,6 +138,11 @@ public class Game implements Serializable{
 	
 	public static long getSerialversionuid() {
 		return serialVersionUID;
+	}
+
+	@Override
+	public String toString() {
+		return new Gson().toJson(this);
 	}
 	
 }
